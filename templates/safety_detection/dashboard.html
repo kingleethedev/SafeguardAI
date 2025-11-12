@@ -1,0 +1,332 @@
+{% extends 'safety_detection/base.html' %}
+
+{% block title %}Dashboard - Public Safety AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-danger text-white stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ threat_stats.high }}</h4>
+                            <p class="card-text">High Threat Alerts</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ threat_stats.medium }}</h4>
+                            <p class="card-text">Medium Threat Alerts</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ threat_stats.low }}</h4>
+                            <p class="card-text">Low Threat Alerts</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-info-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ threat_stats.total }}</h4>
+                            <p class="card-text">Total Alerts</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-bell fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map and Recent Alerts -->
+    <div class="row mb-4">
+        <!-- Map -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-marked-alt"></i> Incident Hotspot Map
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Alerts -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bell"></i> Recent Alerts
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% for alert in recent_alerts %}
+                    <div class="alert-card mb-3 p-3 threat-{{ alert.threat_level }} rounded">
+                        <h6 class="mb-1">{{ alert.title }}</h6>
+                        <p class="mb-1 small">{{ alert.summary|default:alert.description|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-{% if alert.threat_level == 'high' %}danger{% elif alert.threat_level == 'medium' %}warning{% else %}info{% endif %}">
+                                {{ alert.threat_level|upper }}
+                            </span>
+                            <small class="text-muted">{{ alert.created_at|timesince }} ago</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">No alerts yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Additional Data -->
+    <div class="row">
+        <!-- Sentiment Chart -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line"></i> Social Media Sentiment Trend
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="sentimentChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incident Type Chart -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie"></i> Incident Type Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="incidentTypeChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row mt-4">
+        <!-- Recent Social Media -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-twitter"></i> Recent Social Media Posts
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    {% for post in recent_posts %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <small class="text-muted">@{{ post.author }}</small>
+                            <span class="badge bg-{% if post.threat_level == 'high' %}danger{% elif post.threat_level == 'medium' %}warning{% else %}info{% endif %}">
+                                {{ post.threat_level|upper }}
+                            </span>
+                        </div>
+                        <p class="mb-1 small">{{ post.text|truncatewords:15 }}</p>
+                        <small class="text-muted">{{ post.timestamp|timesince }} ago • {{ post.source }}</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">No social media posts yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent CCTV Analysis -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-video"></i> Recent CCTV Detections
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    {% for analysis in recent_cctv %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="badge bg-{% if analysis.threat_level == 'high' %}danger{% elif analysis.threat_level == 'medium' %}warning{% else %}info{% endif %}">
+                                {{ analysis.threat_level|upper }}
+                            </span>
+                            <small class="text-muted">{{ analysis.timestamp|timesince }} ago</small>
+                        </div>
+                        <p class="mb-1 small">
+                            Crowd: {{ analysis.crowd_density }} people
+                            {% if analysis.detected_objects.weapons > 0 %}
+                            • Weapons: {{ analysis.detected_objects.weapons }}
+                            {% endif %}
+                        </p>
+                        <small class="text-muted">Anomaly: {{ analysis.anomaly_detected|yesno:"Detected,None" }}</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">No CCTV detections yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize map
+
+var map = L.map('map').setView([-1.286389, 36.817223], 10); // Nairobi coordinates
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Load alerts onto map
+fetch('{% url "alert_map" %}')
+    .then(response => response.json())
+    .then(data => {
+        data.alerts.forEach(alert => {
+            var color = alert.threat_level === 'high' ? 'red' : 
+                       alert.threat_level === 'medium' ? 'orange' : 'blue';
+            
+            var marker = L.circleMarker([alert.lat, alert.lng], {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.5,
+                radius: 8
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <strong>${alert.title}</strong><br>
+                <em>Threat Level: ${alert.threat_level.toUpperCase()}</em><br>
+                <em>Type: ${alert.type}</em><br>
+                <p>${alert.description}</p>
+            `);
+        });
+    })
+    .catch(error => console.error('Error loading alerts:', error));
+// Load alerts onto map
+fetch('{% url "alert_map" %}')
+    .then(response => response.json())
+    .then(data => {
+        data.alerts.forEach(alert => {
+            var color = alert.threat_level === 'high' ? 'red' : 
+                       alert.threat_level === 'medium' ? 'orange' : 'blue';
+            
+            var marker = L.circleMarker([alert.lat, alert.lng], {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.5,
+                radius: 8
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <strong>${alert.title}</strong><br>
+                <em>Threat Level: ${alert.threat_level.toUpperCase()}</em><br>
+                <em>Type: ${alert.type}</em><br>
+                <p>${alert.description}</p>
+            `);
+        });
+    })
+    .catch(error => console.error('Error loading alerts:', error));
+
+// Sentiment Chart
+var sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+var sentimentChart = new Chart(sentimentCtx, {
+    type: 'line',
+    data: {
+        labels: {{ sentiment_data.labels|safe }},
+        datasets: [{
+            label: 'Sentiment Score',
+            data: {{ sentiment_data.data }},
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            },
+            title: {
+                display: true,
+                text: 'Social Media Sentiment Over Time'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 1.0
+            }
+        }
+    }
+});
+
+// Incident Type Chart
+var incidentCtx = document.getElementById('incidentTypeChart').getContext('2d');
+var incidentChart = new Chart(incidentCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ incident_type_data.labels|safe }},
+        datasets: [{
+            data: {{ incident_type_data.data }},
+            backgroundColor: [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            },
+            title: {
+                display: true,
+                text: 'Alert Distribution by Incident Type'
+            }
+        }
+    }
+});
+
+</script>
+{% endblock %}

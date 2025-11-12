@@ -1,0 +1,142 @@
+{% extends 'safety_detection/base.html' %}
+
+{% block title %}CCTV Analysis - Public Safety AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-video text-success"></i>
+                    CCTV Anomaly Detection
+                </h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline-success" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <p class="text-muted">
+                AI-powered analysis of CCTV footage for unusual activities and crowd behavior
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="text-primary">{{ analyses|length }}</h3>
+                    <p class="mb-0">Total Frames Analyzed</p>
+                </div>
+            </div>
+        </div>
+        {% for stat in anomaly_stats %}
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="text-{% if stat.threat_level == 'high' %}danger{% elif stat.threat_level == 'medium' %}warning{% else %}info{% endif %}">
+                        {{ stat.count }}
+                    </h3>
+                    <p class="mb-0">{{ stat.threat_level|title }} Threat</p>
+                    <small class="text-muted">Avg crowd: {{ stat.avg_crowd|default:0|floatformat:0 }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- CCTV Analysis Results -->
+    <div class="row">
+        {% for analysis in analyses %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card alert-card">
+                <div class="card-header bg-{% if analysis.threat_level == 'high' %}danger{% elif analysis.threat_level == 'medium' %}warning{% else %}info{% endif %} text-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-camera"></i>
+                        CCTV Detection - {{ analysis.threat_level|upper }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if analysis.frame_image %}
+                    <div class="mb-3 text-center">
+                        <img src="{{ analysis.frame_image.url }}" 
+                             alt="CCTV Frame" 
+                             class="img-fluid rounded" 
+                             style="max-height: 200px;">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="analysis-details">
+                        <div class="row small">
+                            <div class="col-6">
+                                <strong>Crowd Density:</strong><br>
+                                <span class="badge bg-secondary">{{ analysis.crowd_density|default:0 }} people</span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Anomaly:</strong><br>
+                                <span class="badge bg-{% if analysis.anomaly_detected %}danger{% else %}success{% endif %}">
+                                    {{ analysis.anomaly_detected|yesno:"Detected,None" }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {% if analysis.detected_objects %}
+                        <div class="mt-2">
+                            <strong>Detected Objects:</strong>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                {% if analysis.detected_objects.people > 0 %}
+                                <span class="badge bg-primary">People: {{ analysis.detected_objects.people }}</span>
+                                {% endif %}
+                                {% if analysis.detected_objects.vehicles > 0 %}
+                                <span class="badge bg-info">Vehicles: {{ analysis.detected_objects.vehicles }}</span>
+                                {% endif %}
+                                {% if analysis.detected_objects.weapons > 0 %}
+                                <span class="badge bg-danger">Weapons: {{ analysis.detected_objects.weapons }}</span>
+                                {% endif %}
+                                {% if analysis.detected_objects.fire > 0 %}
+                                <span class="badge bg-warning">Fire: {{ analysis.detected_objects.fire }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i>
+                                {{ analysis.timestamp|timesince }} ago
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5 text-muted">
+                    <i class="fas fa-video-slash fa-3x mb-3"></i>
+                    <h4>No CCTV Analysis Results Yet</h4>
+                    <p>Process some CCTV videos to see analysis results here.</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshData() {
+    location.reload();
+}
+
+// Auto-refresh every 30 seconds
+setTimeout(() => {
+    refreshData();
+}, 30000);
+</script>
+{% endblock %}

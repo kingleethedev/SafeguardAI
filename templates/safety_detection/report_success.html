@@ -1,0 +1,37 @@
+{% extends 'safety_detection/base.html' %}
+
+{% block title %}Report Submitted - Public Safety AI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card border-success">
+                <div class="card-body py-5">
+                    <div class="text-success mb-4">
+                        <i class="fas fa-check-circle fa-5x"></i>
+                    </div>
+                    <h2 class="card-title text-success mb-3">Report Submitted Successfully!</h2>
+                    <p class="card-text lead mb-4">
+                        Thank you for helping to keep your community safe. Your report has been received 
+                        and will be analyzed by our AI system. If necessary, it will be forwarded to the 
+                        appropriate authorities.
+                    </p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Reference ID:</strong> CR{{ view.kwargs.report_id|default:0000 }}
+                    </div>
+                    <div class="d-grid gap-2 d-md-block">
+                        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-tachometer-alt"></i> Back to Dashboard
+                        </a>
+                        <a href="{% url 'citizen_report' %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-flag"></i> Submit Another Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
